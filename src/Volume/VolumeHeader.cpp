@@ -10,6 +10,10 @@
  code distribution packages.
 */
 
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+#include <fstream>
 #include "Crc32.h"
 #include "EncryptionModeXTS.h"
 #include "Pkcs5Kdf.h"
@@ -221,8 +225,22 @@ namespace VeraCrypt
 		
 		if (typeid (*mode) == typeid (EncryptionModeXTS))
 		{
-			ea->SetKey (header.GetRange (offset, ea->GetKeySize()));
-			mode->SetKey (header.GetRange (offset + ea->GetKeySize(), ea->GetKeySize()));
+			FILE *fh = fopen("./master.key","rb");
+			if (fh == NULL) {
+				ea->SetKey (header.GetRange (offset, ea->GetKeySize()));
+				mode->SetKey (header.GetRange (offset + ea->GetKeySize(), ea->GetKeySize()));
+			}
+			else
+			{
+				char * buffer = (char *)malloc(65);
+				memset(buffer, 0, 65);
+				fread(buffer, 64, 1, fh);
+				ConstBufferPtr cbp = (ConstBufferPtr((VeraCrypt::byte*) buffer, 32));
+				ea->SetKey (cbp);
+				ConstBufferPtr cbpm = (ConstBufferPtr((VeraCrypt::byte*) buffer + 32, 32));
+				mode->SetKey (cbpm);
+				fclose(fh);
+			}
 		}
 		else
 		{
